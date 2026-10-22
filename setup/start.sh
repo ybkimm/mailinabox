@@ -113,9 +113,6 @@ source setup/mail-users.sh
 source setup/dkim.sh
 source setup/spamassassin.sh
 source setup/web.sh
-source setup/webmail.sh
-source setup/nextcloud.sh
-source setup/zpush.sh
 source setup/management.sh
 source setup/munin.sh
 

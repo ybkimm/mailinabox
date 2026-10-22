@@ -39,7 +39,7 @@ These services are protected by [TLS](https://en.wikipedia.org/wiki/Transport_La
 
 * SMTP Submission (ports 465/587). Mail users submit outbound mail through SMTP with TLS (port 465) or STARTTLS (port 587).
 * IMAP/POP (ports 993, 995). Mail users check for incoming mail through IMAP or POP over TLS.
-* HTTPS (port 443). Webmail, the Exchange/ActiveSync protocol, the administrative control panel, and any static hosted websites are accessed over HTTPS.
+* HTTPS (port 443). The administrative control panel and any static hosted websites are accessed over HTTPS.
 
 The services all follow these rules:
 
@@ -68,7 +68,7 @@ If DNSSEC is enabled at the box's domain name's registrar, the SSHFP record that
 
 `fail2ban` provides some protection from brute-force login attacks (repeated logins that guess account passwords) by blocking offending IP addresses at the network level.
 
-The following services are protected: SSH, IMAP (dovecot), SMTP submission (postfix), webmail (roundcube), Nextcloud/CalDAV/CardDAV (over HTTP), and the Mail-in-a-Box control panel (over HTTP).
+The following services are protected: SSH, IMAP (dovecot), SMTP submission (postfix), and the Mail-in-a-Box control panel (over HTTP).
 
 Some other services running on the box may be missing fail2ban filters.
 

@@ -84,8 +84,7 @@ rm -f /tmp/bootstrap.zip
 
 # Create an init script to start the management daemon and keep it
 # running after a reboot.
-# Set a long timeout since some commands take a while to run, matching
-# the timeout we set for PHP (fastcgi_read_timeout in the nginx confs).
+# Set a long timeout since some commands take a while to run.
 # Note: Authentication currently breaks with more than 1 gunicorn worker.
 cat > $inst_dir/start <<EOF;
 #!/bin/bash

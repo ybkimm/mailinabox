@@ -370,12 +370,12 @@ def run_domain_checks(rounded_time, env, output, pool, domains_to_check=None):
 	if domains_to_check is None:
 		domains_to_check = mail_domains | dns_domains | web_domains
 
-	# Remove "www", "autoconfig", "autodiscover", and "mta-sts" subdomains, which we group with their parent,
+	# Remove "www", "autoconfig", and "mta-sts" subdomains, which we group with their parent,
 	# if their parent is in the domains to check list.
 	domains_to_check = [
 		d for d in domains_to_check
 		if not (
-		   d.split(".", 1)[0] in {"www", "autoconfig", "autodiscover", "mta-sts"}
+		   d.split(".", 1)[0] in {"www", "autoconfig", "mta-sts"}
 		   and len(d.split(".", 1)) == 2
 		   and d.split(".", 1)[1] in domains_to_check
 		)
@@ -433,7 +433,7 @@ def run_domain_checks_on_domain(domain, rounded_time, env, dns_domains, dns_zone
 
 	# Check auto-configured subdomains. See run_domain_checks.
 	# Skip mta-sts because we check the policy directly.
-	for label in ("www", "autoconfig", "autodiscover"):
+	for label in ("www", "autoconfig"):
 		subdomain = label + "." + domain
 		if subdomain in web_domains or subdomain in mail_domains:
 			# Run checks.
@@ -835,7 +835,7 @@ def check_web_domain(domain, rounded_time, ssl_certificates, env, output):
 				ok_values.append(value)
 			else:
 				output.print_error(f"""This domain should resolve to this box's IP address ({rtype} {expected}) if you would like the box to serve
-					webmail or a website on this domain. The domain currently resolves to {value} in public DNS. It may take several hours for
+					a website on this domain. The domain currently resolves to {value} in public DNS. It may take several hours for
 					public DNS to update after a change. This problem may result from other issues listed here.""")
 				return
 
@@ -844,7 +844,7 @@ def check_web_domain(domain, rounded_time, ssl_certificates, env, output):
 
 
 	# We need a TLS certificate for PRIMARY_HOSTNAME because that's where the
-	# user will log in with IMAP or webmail. Any other domain we serve a
+	# user will log in with IMAP. Any other domain we serve a
 	# website for also needs a signed certificate.
 	check_ssl_cert(domain, rounded_time, ssl_certificates, env, output)
 
@@ -926,7 +926,7 @@ def check_ssl_cert(domain, rounded_time, ssl_certificates, env, output):
 		# Offer instructions for purchasing a signed certificate.
 		if domain == env['PRIMARY_HOSTNAME']:
 			output.print_error("""The TLS (SSL) certificate for this domain is currently self-signed. You will get a security
-			warning when you check or send email and when visiting this domain in a web browser (for webmail or
+			warning when you check or send email and when visiting this domain in a web browser (for the control panel or
 			static site hosting).""")
 		else:
 			output.print_error("""The TLS (SSL) certificate for this domain is self-signed.""")

@@ -137,7 +137,6 @@ def build_zones(env):
 	from mailconfig import get_mail_domains
 	from web_update import get_web_domains
 	mail_domains = set(get_mail_domains(env))
-	mail_user_domains = set(get_mail_domains(env, users_only=True)) # i.e. will log in for mail, Nextcloud
 	web_domains = set(get_web_domains(env))
 	auto_domains = web_domains - set(get_web_domains(env, include_auto=False))
 	domains |= auto_domains # www redirects not included in the initial list, see above
@@ -151,7 +150,6 @@ def build_zones(env):
 
 	domains = {
 		domain: {
-			"user": domain in mail_user_domains,
 			"mail": domain in mail_domains,
 			"web": domain in web_domains,
 			"auto": domain in auto_domains,
@@ -258,7 +256,6 @@ def build_zone(domain, domain_properties, additional_records, env, is_zone=True)
 		if domain.startswith("www."): a_expl = f"Optional. Sets the IP address that {domain} resolves to so that the box can provide a redirect to the parent domain."
 		if domain.startswith("mta-sts."): a_expl = "Optional. MTA-STS Policy Host serving /.well-known/mta-sts.txt."
 		if domain.startswith("autoconfig."): a_expl = "Provides email configuration autodiscovery support for Thunderbird Autoconfig."
-		if domain.startswith("autodiscover."): a_expl = "Provides email configuration autodiscovery support for Z-Push ActiveSync Autodiscover."
 	defaults = [
 		(None,  "A",    env["PUBLIC_IP"], a_expl),
 		(None,  "AAAA", env.get('PUBLIC_IPV6'), f"Optional. Sets the IPv6 address that {domain} resolves to, e.g. for web hosting. (It is not necessary for receiving mail on this domain.)"),
@@ -300,16 +297,6 @@ def build_zone(domain, domain_properties, additional_records, env, is_zone=True)
 		# Skip if the user has set a DMARC record already.
 		if not has_rec("_dmarc", "TXT", prefix="v=DMARC1; "):
 			records.append(("_dmarc", "TXT", 'v=DMARC1; p=quarantine;', f"Recommended. Specifies that mail that does not originate from the box but claims to be from @{domain} or which does not have a valid DKIM signature is suspect and should be quarantined by the recipient's mail system."))
-
-	if domain_properties[domain]["user"]:
-		# Add CardDAV/CalDAV SRV records on the non-primary hostname that points to the primary hostname
-		# for autoconfiguration of mail clients (so only domains hosting user accounts need it).
-		# The SRV record format is priority (0, whatever), weight (0, whatever), port, service provider hostname (w/ trailing dot).
-		if domain != env["PRIMARY_HOSTNAME"]:
-			for dav in ("card", "cal"):
-				qname = "_" + dav + "davs._tcp"
-				if not has_rec(qname, "SRV"):
-					records.append((qname, "SRV", "0 0 443 " + env["PRIMARY_HOSTNAME"] + ".", "Recommended. Specifies the hostname of the server that handles CardDAV/CalDAV services for email addresses on this domain."))
 
 	# If this is a domain name that there are email addresses configured for, i.e. "something@"
 	# this domain name, then the domain name is a MTA-STS (https://tools.ietf.org/html/rfc8461)

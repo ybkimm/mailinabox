@@ -110,19 +110,31 @@ hide_output add-apt-repository -y universe
 # Install the duplicity PPA.
 hide_output add-apt-repository -y ppa:duplicity-team/duplicity-release-git
 
-# Stock PHP is now 8.1, but we're transitioning through 8.0 because
-# of Nextcloud.
-hide_output add-apt-repository --y ppa:ondrej/php
+# Earlier versions ran Roundcube, Nextcloud and Z-Push on PHP from
+# ppa:ondrej/php. Remove them. User data in STORAGE_ROOT is left alone.
+# The PPA is removed before apt-get update so that it can't block it.
+if ls /etc/apt/sources.list.d/ondrej-ubuntu-php-* &> /dev/null; then
+	echo "Removing ppa:ondrej/php..."
+	hide_output add-apt-repository --remove -y ppa:ondrej/php
+fi
+if dpkg -l 'php*' 2> /dev/null | grep -q '^ii'; then
+	echo "Removing PHP..."
+	hide_output apt-get -y purge 'php*' libawl-php
+	hide_output apt-get -y --purge autoremove
+fi
+rm -rf /usr/local/lib/{roundcubemail,owncloud,z-push} /usr/sbin/z-push-{admin,top} \
+	/etc/cron.d/mailinabox-nextcloud /etc/logrotate.d/{z-push,nextcloud} \
+	/var/log/{z-push,roundcubemail} /var/lib/z-push /var/tmp/roundcubemail \
+	/etc/fail2ban/filter.d/miab-{owncloud,roundcube}.conf
 
 # ### Update Packages
 
 # Update system packages to make sure we have the latest upstream versions
 # of things from Ubuntu, as well as the directory of packages provide by the
 # PPAs so we can install those packages later.
-# --allow-releaseinfo-change is added because ppa:ondrej/php changed its Label.
 
 echo "Updating system packages..."
-hide_output apt-get update --allow-releaseinfo-change
+hide_output apt-get update
 apt_get_quiet upgrade
 
 # Old kernels pile up over time and take up a lot of disk space, and because of Mail-in-a-Box
@@ -162,12 +174,11 @@ fi
 
 # ### Set the system timezone
 #
-# Some systems are missing /etc/timezone, which we cat into the configs for
-# Z-Push and ownCloud, so we need to set it to something. Daily cron tasks
-# like the system backup are run at a time tied to the system timezone, so
-# letting the user choose will help us identify the right time to do those
-# things (i.e. late at night in whatever timezone the user actually lives
-# in).
+# Some systems are missing /etc/timezone, so we need to set it to something.
+# Daily cron tasks like the system backup are run at a time tied to the
+# system timezone, so letting the user choose will help us identify the
+# right time to do those things (i.e. late at night in whatever timezone
+# the user actually lives in).
 #
 # However, changing the timezone once it is set seems to confuse fail2ban
 # and requires restarting fail2ban (done below in the fail2ban
@@ -200,7 +211,6 @@ fi
 # * TLS private key (see `ssl.sh`, which calls `openssl genrsa`)
 # * DNSSEC signing keys (see `dns.sh`)
 # * our management server's API key (via Python's os.urandom method)
-# * Roundcube's SECRET_KEY (`webmail.sh`)
 #
 # Why /dev/urandom? It's the same as /dev/random, except that it doesn't wait
 # for a constant new stream of entropy. In practice, we only need a little
@@ -374,13 +384,12 @@ rm -f /etc/fail2ban/jail.d/defaults-debian.conf # removes default config so we c
 cat conf/fail2ban/jails.conf \
     | sed "s/PUBLIC_IPV6/$PUBLIC_IPV6/g" \
 	| sed "s/PUBLIC_IP/$PUBLIC_IP/g" \
-	| sed "s#STORAGE_ROOT#$STORAGE_ROOT#" \
 	> /etc/fail2ban/jail.d/mailinabox.conf
 cp -f conf/fail2ban/filter.d/* /etc/fail2ban/filter.d/
 
 # On first installation, the log files that the jails look at don't all exist.
-# e.g., The roundcube error log isn't normally created until someone logs into
-# Roundcube for the first time. This causes fail2ban to fail to start. Later
+# e.g., The nginx access log isn't created until nginx is installed later
+# in setup. This causes fail2ban to fail to start. Later
 # scripts will ensure the files exist and then fail2ban is given another
 # restart at the very end of setup.
 restart_service fail2ban

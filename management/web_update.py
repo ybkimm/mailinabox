@@ -27,9 +27,7 @@ def get_web_domains(env, include_www_redirects=True, include_auto=True, exclude_
 	if include_auto:
 		# Add Autoconfiguration domains for domains that there are user accounts at:
 		# 'autoconfig.' for Mozilla Thunderbird auto setup.
-		# 'autodiscover.' for ActiveSync autodiscovery (Z-Push).
 		domains |= {'autoconfig.' + maildomain for maildomain in get_mail_domains(env, users_only=True)}
-		domains |= {'autodiscover.' + maildomain for maildomain in get_mail_domains(env, users_only=True)}
 
 		# 'mta-sts.' for MTA-STS support for all domains that have email addresses.
 		domains |= {'mta-sts.' + maildomain for maildomain in get_mail_domains(env)}
@@ -39,9 +37,9 @@ def get_web_domains(env, include_www_redirects=True, include_auto=True, exclude_
 		# IP address than this box. Remove those domains from our list.
 		domains -= get_domains_with_a_records(env)
 
-	# Ensure the PRIMARY_HOSTNAME is in the list so we can serve webmail
-	# as well as Z-Push for Exchange ActiveSync. This can't be removed
-	# by a custom A/AAAA record and is never a 'www.' redirect.
+	# Ensure the PRIMARY_HOSTNAME is in the list so we can serve the
+	# control panel. This can't be removed by a custom A/AAAA record
+	# and is never a 'www.' redirect.
 	domains.add(env['PRIMARY_HOSTNAME'])
 
 	# Sort the list so the nginx conf gets written in a stable order.
